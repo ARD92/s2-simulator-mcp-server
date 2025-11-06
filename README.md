@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project implements an MCP (Multi-Cloud Platform) server designed to interact with and control the `generate_all_stats.py` script from the S2 Observability Simulator. It allows users to generate network observability metrics in either a steady-state (baseline) mode or an anomaly-injection mode, simulating various network issues.
+This project implements an MCP (Multi-Cloud Platform) server designed to interact with and control the S2 Observability Simulator. It allows users to generate network observability metrics in either a steady-state (baseline) mode or an anomaly-injection mode, simulating various network issues. Ensure you have all necessary files before you run this.
 
 ## Features
 
@@ -14,15 +14,13 @@ This project implements an MCP (Multi-Cloud Platform) server designed to interac
 
 ## Installation
 
-1.  **Clone the repository** (if you haven't already).
-
+1.  **Clone the repository** (if you haven't already). and https://github.com/ARD92/s2-observability-simulator.git which is the simulator tool. 
 2.  **Install dependencies**: The server relies on `mcp` and `python-dotenv`.
 
     ```bash
     pip install -r requirements.txt
     ```
-
-3.  **Ensure `generate_all_stats.py` is available**: This server expects the `generate_all_stats.py` script to be located in the directory specified by `SCRIPT_DIR` (default: `/root/s2-observability-simulator/`). You may need to adjust the `SCRIPT_DIR` and `PYTHON_BIN` environment variables if your setup differs.
+3.  **Ensure `generate_all_stats.py` is available**: This server expects the `generate_all_stats.py` script to be located in the directory specified by `SCRIPT_DIR` (default: `/root/s2-observability-simulator/`). You may need to adjust the `SCRIPT_DIR` and `PYTHON_BIN` environment variables if your setup differs. Clone https://github.com/ARD92/s2-observability-simulator.git to obtain the tool
 
 ## Usage
 
@@ -42,7 +40,7 @@ python main.py
 
 ### Running Simulations
 
-Simulations can be initiated using the `simulator_intent` tool. You can provide a structured JSON payload.
+Simulations can be initiated using the `simulator_intent` tool. You can provide a structured JSON payload or freeform text and allow the llm to interpret.
 
 #### Steady-State Mode
 
@@ -70,6 +68,36 @@ To inject anomalies, set the `mode` to "anomaly" and provide the `anomaly` paylo
     "bgp": "bgp.csv",
     "anomaly": {"cpuspike": ["nylf01"], "memspike": ["nyag01"], "linkdown": ["nylf01_et-0/0/0"]}
 }
+```
+
+```
+use simulator tool with topology=mcp-topology.csv, bgp = mcp-bgp_config.csv, mode=anomaly, anamoly cpuspike for CASPJNP01, memspike for device CASPJNP02, linkdown on CALFJNP02 interface et-0/0/0
+
+If you want to modify existing , use the following prompt
+
+> kill the above session and reinitiate the same with interface et-0/0/4 instead of et-0/0/0
+
+╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ ✓  simulator_stop_run (simulator MCP Server) {"payload":{"proc_id":"5db1c996-3d88-48b8-a047-85b2e01c39cb"},"ctx":""}                              │
+│                                                                                                                                                   │
+│    {                                                                                                                                              │
+│      "status": "stopped",                                                                                                                         │
+│      "proc_id": "5db1c996-3d88-48b8-a047-85b2e01c39cb",                                                                                           │
+│      "stopped": true,                                                                                                                             │
+│      "signal": "SIGTERM"                                                                                                                          │
+│    }                                                                                                                                              │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ ✓  simulator_intent (simulator MCP Server) {"ctx":"","payload":{"topology":"mcp-topology.csv","mode":"anomaly","bgp":"mcp-bgp_config.csv","anoma… │
+│                                                                                                                                                   │
+│    {                                                                                                                                              │
+│      "status": "spawned",                                                                                                                         │
+│      "proc_id": "df5ee7b1-cf7a-4e2b-929d-09a3e66b84ed",                                                                                           │
+│      "pid": 1389897                                                                                                                               │
+│    }                                                                                                                                              │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✦ The previous simulator session has been stopped. I have re-initiated the simulator with the same anomalies, but with the linkdown on CALFJNP02
+  interface et-0/0/4.
 ```
 
 ### Anomaly Types
@@ -104,7 +132,24 @@ To stop a running session, use `simulator_stop_run` with the `proc_id` obtained 
     "proc_id": "YOUR_PROCESS_ID"
 }
 ```
+or 
 
+```
+>> > kill all sessions
+
+╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ ✓  simulator_stop_run (simulator MCP Server) {"payload":{"proc_id":"38018225-c96b-495a-8f90-cc1bc524c5b6"},"ctx":""}                              │
+│                                                                                                                                                   │
+│    {                                                                                                                                              │
+│      "status": "stopped",                                                                                                                         │
+│      "proc_id": "38018225-c96b-495a-8f90-cc1bc524c5b6",                                                                                           │
+│      "stopped": true,                                                                                                                             │
+│      "signal": "SIGTERM"                                                                                                                          │
+│    }                                                                                                                                              │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✦ All active simulator sessions have been stopped.
+
+```
 #### Viewing Session Status
 
 To see all active and finished simulator sessions:
@@ -112,4 +157,20 @@ To see all active and finished simulator sessions:
 ```json
 {}
 ```
-(empty payload for `simulator_status`)
+(empty payload for `simulator_status`) or use 
+
+```
+>> show all sessions
+
+ Here are all the simulator sessions:
+
+   * Session ID: 5db1c996-3d88-48b8-a047-85b2e01c39cb (Finished)
+       * Command: generate_all_stats.py -t mcp-topology.csv -a anomaly -b mcp-bgp_config.csv -av {"memspike": ["CASPJNP02"], "cpuspike": ["CASPJNP01"],
+          "linkdown": ["CALFJNP02_et-0/0/0"]}
+   * Session ID: df5ee7b1-cf7a-4e2b-929d-09a3e66b84ed (Finished)
+       * Command: generate_all_stats.py -t mcp-topology.csv -a anomaly -b mcp-bgp_config.csv -av {"cpuspike": ["CASPJNP01"], "linkdown":
+         ["CALFJNP02_et-0/0/4"], "memspike": ["CASPJNP02"]}
+   * Session ID: 38018225-c96b-495a-8f90-cc1bc524c5b6 (Running)
+       * Command: generate_all_stats.py -t mcp-topology.csv -a anomaly -b mcp-bgp_config.csv -av {"cpuspike": ["CASPJNP01"], "linkdown":
+         ["CALFJNP02_et-0/0/1"], "memspike": ["CASPJNP02"]}
+```
