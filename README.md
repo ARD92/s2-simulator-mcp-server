@@ -32,7 +32,7 @@ This project implements an MCP (Multi-Cloud Platform) server designed to interac
         "command": "npx",
         "args": [
         "mcp-remote",
-        "http://10.167.0.9:8050/mcp/",
+        "http://192.168.1.10:8050/mcp/",
         "--allow-http"
         ]
     }
