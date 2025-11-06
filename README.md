@@ -24,6 +24,22 @@ This project implements an MCP (Multi-Cloud Platform) server designed to interac
 
 ## Usage
 
+### MCP server config
+```
+{
+  "mcpServers": {
+    "simulator": {
+        "command": "npx",
+        "args": [
+        "mcp-remote",
+        "http://10.167.0.9:8050/mcp/",
+        "--allow-http"
+        ]
+    }
+  }
+}
+```
+
 The MCP server exposes the following tools:
 
 *   `simulator_intent`: To start a new simulation.
