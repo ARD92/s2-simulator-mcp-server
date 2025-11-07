@@ -6,13 +6,11 @@ Endpoints (MCP messages):
 - "run_intent" : Accepts either a free-form command string or a structured JSON payload.
     Example structured payloads:
     {
-        "mode": "steady",                # or "anomaly" or "replay"
+        "mode": "steady",                # or "anomaly"
         "topology": "topology.csv",      # optional, default topology.csv
         "assurance": "assurance.csv",    # optional
         "bgp": "bgp.csv",                # optional
-        "ospf": "ospf.csv",                # optional
         "tunnel": "tunnel.csv",          # optional
-        "replay_file": "logs.csv",       # only for replay mode
         "anomaly": {"cpuspike": ["nylf01"]}  # only for anomaly. Must be JSON-serializable
     }
 
@@ -44,7 +42,7 @@ SCRIPT = os.environ.get("GEN_STATS_SCRIPT", "generate_all_stats.py")
 PYTHON_BIN = os.environ.get("PYTHON_BIN", "/root/mcp-sim/.venv/bin/python3")  # allow override e.g. to virtualenv python
 
 # Allowed anomaly action keys (from examples)
-ALLOWED_ANOMALY_KEYS = {"trafficprofile", "cpuspike", "memspike", "assurance", "bgpdown", "bgpflap", "tundown", "tunflap", "linkdown", "nodedown","configcommit", "intindisc", "intoutdisc", "intinerr", "intouterr", "intflap", "ospfdown", "ospfflap"}
+ALLOWED_ANOMALY_KEYS = {"trafficprofile", "cpuspike", "memspike", "assurance", "bgpdown", "bgpflap", "tundown", "tunflap", "linkdown", "nodedown","configcommit", "intindisc", "intoutdisc", "intinerr", "intouterr", "intflap"}
 
 # Running processes registry (simple in-memory)
 RUNNING_PROCS: Dict[str, subprocess.Popen] = {}
@@ -58,7 +56,7 @@ def safe_filename(name: Optional[str]) -> Optional[str]:
         raise ValueError("Filenames must not contain path separators.")
     # Basic allowed characters: letters, digits, -, _, ., comma allowed
     # Keep simple check
-    allowed = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234unlimited_edition_250x250.jpg")
+    allowed = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.csv")
     if not set(name) <= allowed:
         raise ValueError("Filename contains disallowed characters.")
     return name
@@ -100,18 +98,10 @@ def build_cmd_from_intent(intent: Dict[str, Any]) -> list:
     Returns command list (e.g. ["python3", "generate_all_stats.py", "-t", "topology.csv", ...])
     """
     mode = intent.get("mode")
-    if not mode or mode not in ("steady", "anomaly", "replay"):
-        raise ValueError("mode must be 'steady', 'anomaly', or 'replay'")
+    if not mode or mode not in ("steady", "anomaly"):
+        raise ValueError("mode must be 'steady' or 'anomaly'")
 
     topology = safe_filename(intent.get("topology") or "topology.csv")
-    
-    if mode == "replay":
-        replay_file = safe_filename(intent.get("replay_file"))
-        if not replay_file:
-            raise ValueError("replay_file is required for replay mode")
-        cmd = [PYTHON_BIN, SCRIPT, "-t", topology, "-a", "replay", "-f", replay_file]
-        return cmd
-
     cmd = [PYTHON_BIN, SCRIPT, "-t", topology, "-a", "steadystate" if mode == "steady" else "anomaly"]
 
     # For steady state: allow assurance and bgp
@@ -125,9 +115,6 @@ def build_cmd_from_intent(intent: Dict[str, Any]) -> list:
         tunnel = safe_filename(intent.get("tunnel"))
         if tunnel:
             cmd.extend(["-tu", tunnel])
-        ospf = safe_filename(intent.get("ospf"))
-        if ospf:
-            cmd.extend(["-o", ospf])
         return cmd
 
     # For anomaly: require -av payload and optional assurance/bgp/tunnel flags depending on payload
@@ -144,9 +131,6 @@ def build_cmd_from_intent(intent: Dict[str, Any]) -> list:
     tunnel = safe_filename(intent.get("tunnel"))
     if tunnel:
         cmd.extend(["-tu", tunnel])
-    ospf = safe_filename(intent.get("ospf"))
-    if ospf:
-        cmd.extend(["-o", ospf])
 
     # produce the -av argument as a single-quoted JSON-string-like arg (example uses single quotes)
     # We'll construct JSON and then wrap in single quotes so it matches your examples.
@@ -260,7 +244,7 @@ def stop_proc(proc_id: str, force: bool = False) -> Dict[str, Any]:
 mcp = FastMCP(name="generate-stats-runner", host="0.0.0.0", port=8050)
 
 # Handler to run intent synchronously and return result
-@mcp.tool("simulator_intent", description="do not include the words python generate_stats.py words in arguments. Only pass arguments. Anomalies are in format {'cpuspike':[devices]}, {'memspike':[devices]}, {'trafficprofile':['device_interface_50-5-2']}, {'bgpflap':['device_interface']}, {'tunflap':['device_interface']}, {'bgpdown':['device_interface']}, {'linkdown':['device_itnerface']}, {'nodedownr': [devices]}, intinerr, intouterr, intindisc, intoutdisc all follow {type: ['device_interface']}, {'ospfdown': [devices_interface']}, {'ospfflap':[devices_interfaces]}")
+@mcp.tool("simulator_intent", description="do not include the words python generate_stats.py words in arguments. Only pass arguments. Anomalies are in format {'cpuspike':[devices]}, {'memspike':[devices]}, {'trafficprofile':['device_interface_50-5-2']}, {'bgpflap':['device_interface']}, {'tunflap':['device_interface']}, {'bgpdown':['device_interface']}, {'linkdown':['device_itnerface']}, {'nodedown': [devices]}, intinerr, intouterr, intindisc, intoutdisc all follow {type: ['device_interface']}")
 def handle_run_intent(ctx, payload: dict):
     print(50*"=")
     print(payload)
@@ -323,8 +307,6 @@ def handle_run_intent(ctx, payload: dict):
     | `bgpflap`        | Simulate BGP session flap events.<br>Example: `{'bgpflap': ['nylf01']}` |
     | `tundown`        | Mark a tunnel as down.<br>Example: `{'tundown': ['tun01']}` |
     | `tunflap`        | Simulate tunnel flapping.<br>Example: `{'tunflap': ['tun01']}` |
-    | `ospflap`        | Simulate ospf flapping.<br>Example: `{'ospfflap': ['nyfl01_et-0/0/0']}` |
-    | `ospfdown`        | Simulate ospf down.<br>Example: `{'ospfdown': ['nyfl01_et-0/0/0']}` |
 
     ### Example anomaly run
 
@@ -370,8 +352,6 @@ def handle_run_intent(ctx, payload: dict):
             "bgp": payload.get("bgp") or payload.get("bgp_config") or payload.get("bgp_config_file"),
             "tunnel": payload.get("tunnel") or payload.get("tunnel_config") or payload.get("tunnel_config_file"),
             "anomaly": payload.get("anomaly") or payload.get("anomaly_config") or payload.get("anomalies"),
-            "replay_file": payload.get("replay_file"),
-            "ospf": payload.get("ospf") or payload.get("ospf_config") or payload.get("ospf_config_file")
         }
         cmd = build_cmd_from_intent(intent)
 
@@ -421,3 +401,4 @@ if __name__ == "__main__":
     print("SCRIPT:", SCRIPT, "PYTHON_BIN:", PYTHON_BIN)
     # Choose transport "http" or "ws" if you like; default shown below:
     mcp.run(transport="streamable-http")
+

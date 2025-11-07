@@ -139,6 +139,8 @@ The following anomaly types are supported in the `anomaly` payload:
 | `intoutdisc`     | Introduce interface output discards. <br>Example: `\'intoutdisc\': [\'nylf01_et-0/0/0\']` |
 | `intinerr`       | Introduce interface input errors. <br>Example: `\'intinerr\': [\'nylf01_et-0/0/0\']` |
 | `intouterr`      | Introduce interface output errors. <br>Example: `\'intouterr\': [\'nylf01_et-0/0/0\']` |
+| `ospfflap`      | Introduce interface output errors. <br>Example: `\'intouterr\': [\'nylf01_et-0/0/0\']` |
+| `ospfdown`      | Introduce interface output errors. <br>Example: `\'intouterr\': [\'nylf01_et-0/0/0\']` |
 
 ### Managing Sessions
 
@@ -192,4 +194,41 @@ To see all active and finished simulator sessions:
    * Session ID: 38018225-c96b-495a-8f90-cc1bc524c5b6 (Running)
        * Command: generate_all_stats.py -t mcp-topology.csv -a anomaly -b mcp-bgp_config.csv -av {"cpuspike": ["CASPJNP01"], "linkdown":
          ["CALFJNP02_et-0/0/1"], "memspike": ["CASPJNP02"]}
+```
+
+#### Replay logs
+```
+> use simulator with mode replay , file logs.csv and topology backbone_topology.csv
+
+╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ x  simulator_intent (simulator MCP Server) {"ctx":"simulator","payload":{"logfile":"logs.csv","topology":"backbone_topology.csv","mode":"replay"}}                                            │
+│                                                                                                                                                                                               │
+│    MCP tool 'simulator_intent' reported tool error for function call:                                                                                                                         │
+│    {"name":"simulator_intent","args":{"ctx":"simulator","payload":{"logfile":"logs.csv","topology":"backbone_topology.csv","mode":"replay"}}} with response:                                  │
+│    [{"functionResponse":{"name":"simulator_intent","response":{"error":{"content":[{"type":"text","text":"Error executing tool simulator_intent: replay_file is required for replay           │
+│    mode"}],"isError":true}}}}]                                                                                                                                                                │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✦ I apologize for the error. It seems the correct parameter for the log file in replay mode is replay_file. I will restart the simulator with the correct parameter.
+╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ ✓  simulator_intent (simulator MCP Server) {"ctx":"simulator","payload":{"topology":"backbone_topology.csv","replay_file":"logs.csv","mode":"replay"}}                                        │
+│                                                                                                                                                                                               │
+│    {                                                                                                                                                                                          │
+│      "status": "done",                                                                                                                                                                        │
+│      "cmd": [                                                                                                                                                                                 │
+│        "/root/mcp-sim/.venv/bin/python3",                                                                                                                                                     │
+│        "generate_all_stats.py",                                                                                                                                                               │
+│        "-t",                                                                                                                                                                                  │
+│        "backbone_topology.csv",                                                                                                                                                               │
+│        "-a",                                                                                                                                                                                  │
+│        "replay",                                                                                                                                                                              │
+│        "-f",                                                                                                                                                                                  │
+│        "logs.csv"                                                                                                                                                                             │
+│      ],                                                                                                                                                                                       │
+│      "returncode": 0,                                                                                                                                                                         │
+│      "stdout": "file is logs. sending to logminer\n",                                                                                                                                         │
+│      "stderr": ""                                                                                                                                                                             │
+│    }                                                                                                                                                                                          │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✦ The simulator has successfully completed the replay mode operation using logs.csv and backbone_topology.csv.
+
 ```
