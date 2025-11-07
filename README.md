@@ -4,6 +4,9 @@
 
 This project implements an MCP (Multi-Cloud Platform) server designed to interact with and control the S2 Observability Simulator. It allows users to generate network observability metrics in either a steady-state (baseline) mode or an anomaly-injection mode, simulating various network issues. Ensure you have all necessary files before you run this.
 
+This was an experiment to learn about MCP and hence its not clean enough to call the APIs directly and instead relies on invoking another tool on the background. But it does its job :) 
+as a result one neeeds to have the files prepared before hand
+
 ## Features
 
 *   **Steady-State Simulation**: Generate baseline network observability metrics.
